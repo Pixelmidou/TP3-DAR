@@ -1,9 +1,7 @@
-package clientPackage;
+package serverPackage;
 
 import java.io.*;
-import java.net.InetSocketAddress;
 import java.net.Socket;
-import java.util.Scanner;
 
 public class ClientProcess_3_1 extends Thread {
 
@@ -18,34 +16,40 @@ public class ClientProcess_3_1 extends Thread {
     @Override
     public void run() {
         try {
-            Scanner sc = new Scanner(System.in);
+            BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+            PrintWriter out = new PrintWriter(new OutputStreamWriter(socket.getOutputStream()), true);
 
-            System.out.print("Premier opérande : ");
-            String a = sc.nextLine();
-            System.out.print("Opérateur (+ - * /) : ");
-            String op = sc.nextLine();
-            System.out.print("Deuxième opérande : ");
-            String b = sc.nextLine();
+            String reponse;
+            try {
+                String aStr = in.readLine();
+                String op = in.readLine();
+                String bStr = in.readLine();
 
-            String ipServeur = "192.168.1.10";
-            InetSocketAddress endpoint = new InetSocketAddress(ipServeur, 1234);
-            Socket s = new Socket();
-            s.connect(endpoint, 5000);
+                System.out.println("Client n°" + numero + " à envoyer : " + aStr + " " + op + " " + bStr);
 
-            BufferedReader in = new BufferedReader(new InputStreamReader(s.getInputStream()));
-            PrintWriter out = new PrintWriter(new OutputStreamWriter(s.getOutputStream()), true);
+                double a = Double.parseDouble(aStr);
+                double b = Double.parseDouble(bStr);
 
-            out.println(a);
-            out.println(op);
-            out.println(b);
+                double resultat = switch (op) {
+                    case "+" -> a + b;
+                    case "-" -> a - b;
+                    case "*" -> a * b;
+                    case "/" -> {
+                        if (b == 0) throw new Exception("Division par zéro");
+                        yield a / b;
+                    }
+                    default -> throw new Exception("Opérateur inconnu");
+                };
+                reponse = String.valueOf(resultat);
+            } catch (Exception e) {
+                reponse = "Erreur : " + e.getMessage();
+            }
 
-            String reponse = in.readLine();
-            System.out.println("Réponse : " + reponse + " (Client n°" + numero + ")");
+            out.println(reponse);
 
-            s.close();
-            sc.close();
+            socket.close();
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            System.out.println("Erreur côté client n°" + numero + " : " + e.getMessage());
         }
     }
 }
